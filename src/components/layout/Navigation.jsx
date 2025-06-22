@@ -1,26 +1,33 @@
 import React from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Home, Package, PackagePlus, PackageMinus, FileText, Bell, LogOut } from 'lucide-react';
+import { Home, Package, PackagePlus, PackageMinus, FileText, LogOut } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const Navigation = () => {
-  const { activeTab, setActiveTab, setIsAuthenticated, getLowStockItems } = useInventory();
-  const lowStockCount = getLowStockItems().length;
+  const { activeTab, setActiveTab, setIsAuthenticated } = useInventory();
 
   const handleLogout = () => {
     toast(
       ({ closeToast }) => (
-        <div className="flex flex-col space-y-2">
-          <p className="text-sm font-medium">Are you sure you want to logout?</p>
-          <div className="flex justify-end gap-2">
+        <div className="flex flex-col space-y-4 p-2">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Confirm Logout</p>
+              <p className="text-xs text-slate-600">Are you sure you want to logout?</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
             <button
-              className="bg-gray-300 text-gray-800 px-3 py-1 rounded"
+              className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               onClick={closeToast}
             >
               Cancel
             </button>
             <button
-              className="bg-red-600 text-white px-3 py-1 rounded"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               onClick={() => {
                 localStorage.removeItem('token');
                 localStorage.setItem('auth', 'false');
@@ -38,67 +45,76 @@ const Navigation = () => {
         autoClose: false,
         closeOnClick: false,
         draggable: false,
+        className: 'custom-toast',
       }
     );
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'stock-in', label: 'Stock In', icon: PackagePlus },
-    { id: 'stock-out', label: 'Stock Out', icon: PackageMinus },
-    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'dashboard', label: 'Dashboard', icon: Home, color: 'text-blue-400' },
+    { id: 'products', label: 'Products', icon: Package, color: 'text-cyan-400' },
+    { id: 'stock-in', label: 'Stock In', icon: PackagePlus, color: 'text-emerald-400' },
+    { id: 'stock-out', label: 'Stock Out', icon: PackageMinus, color: 'text-orange-400' },
+    { id: 'reports', label: 'Reports', icon: FileText, color: 'text-purple-400' },
   ];
 
   return (
-    <nav className="bg-blue-900 text-white p-4 shadow-lg">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <Package className="w-8 h-8 text-green-400" />
-          <div>
-            <h1 className="text-xl font-bold">Just Right</h1>
-            <p className="text-blue-300 text-sm">Inventory Tracker</p>
+    <nav className="bg-gradient-to-r from-slate-900 via-blue-900 to-slate-900 text-white shadow-2xl border-b border-blue-800/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header Section */}
+        <div className="flex items-center justify-between py-4">
+          
+          {/* Logo and Brand */}
+          <div className="flex items-center space-x-4">
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-12 h-12 rounded-xl flex items-center justify-center shadow-lg">
+              <Package className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                Just Right
+              </h1>
+              <p className="text-blue-300 text-sm font-medium">Inventory Management</p>
+            </div>
+          </div>
+
+          {/* Right Section - Logout */}
+          <div className="flex items-center">
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 bg-red-600/90 hover:bg-red-600 backdrop-blur-sm px-4 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-red-500/25 group"
+            >
+              <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" />
+              <span className="font-medium">Logout</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {lowStockCount > 0 && (
-            <div className="relative">
-              <Bell className="w-6 h-6 text-yellow-400" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {lowStockCount}
-              </span>
-            </div>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
+        {/* Navigation Tabs */}
+        <div className="pb-4">
+          <div className="flex space-x-1 bg-slate-800/50 backdrop-blur-sm rounded-2xl p-2 border border-slate-700/50">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`relative flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg transform scale-105'
+                      : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : item.color} group-hover:scale-110 transition-transform duration-200`} />
+                  <span className="font-medium text-sm sm:text-base hidden sm:block">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
-
-      <div className="flex space-x-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                activeTab === item.id
-                  ? 'bg-green-600 text-white shadow-md'
-                  : 'text-blue-200 hover:bg-blue-800 hover:text-white'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          );
-        })}
       </div>
     </nav>
   );
