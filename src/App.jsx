@@ -1,4 +1,6 @@
 import React from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import LoginForm from './components/auth/LoginForm';
 import Navigation from './components/layout/Navigation';
@@ -36,6 +38,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Navigation />
+      <ToastContainer position="top-right" autoClose={3000} />
       <main className="container mx-auto px-4 py-8">
         {renderActiveComponent()}
       </main>

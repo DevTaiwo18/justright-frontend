@@ -1,10 +1,46 @@
 import React from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { Home, Package, PackagePlus, PackageMinus, FileText, Bell, LogOut } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const Navigation = () => {
   const { activeTab, setActiveTab, setIsAuthenticated, getLowStockItems } = useInventory();
   const lowStockCount = getLowStockItems().length;
+
+  const handleLogout = () => {
+    toast(
+      ({ closeToast }) => (
+        <div className="flex flex-col space-y-2">
+          <p className="text-sm font-medium">Are you sure you want to logout?</p>
+          <div className="flex justify-end gap-2">
+            <button
+              className="bg-gray-300 text-gray-800 px-3 py-1 rounded"
+              onClick={closeToast}
+            >
+              Cancel
+            </button>
+            <button
+              className="bg-red-600 text-white px-3 py-1 rounded"
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.setItem('auth', 'false');
+                setIsAuthenticated(false);
+                closeToast();
+                toast.success('Logged out successfully');
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+      }
+    );
+  };
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -24,7 +60,7 @@ const Navigation = () => {
             <p className="text-blue-300 text-sm">Inventory Tracker</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {lowStockCount > 0 && (
             <div className="relative">
@@ -34,9 +70,9 @@ const Navigation = () => {
               </span>
             </div>
           )}
-          
+
           <button
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
             className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
           >
             <LogOut className="w-4 h-4" />

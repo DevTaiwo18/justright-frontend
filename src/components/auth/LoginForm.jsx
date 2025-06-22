@@ -1,22 +1,44 @@
 import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, Eye, EyeOff } from 'lucide-react';
-
+import axios from 'axios';
+import API_BASE_URL from '../../config/api';
+import { Package, Eye, EyeOff, Loader } from 'lucide-react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const LoginForm = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { setIsAuthenticated } = useInventory();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'justright2025') {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        username,
+        password,
+      });
+
+      const { token } = response.data.data;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('auth', 'true');
       setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('Invalid credentials. Please try again.');
+      toast.success('Login successful!');
+    } catch (err) {
+      console.error('Login error:', err);
+      const msg =
+        err.response?.data?.message || 'Invalid credentials. Please try again.';
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,7 +55,9 @@ const LoginForm = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
             <input
               type="text"
               value={username}
@@ -45,7 +69,9 @@ const LoginForm = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -60,7 +86,11 @@ const LoginForm = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -73,16 +103,21 @@ const LoginForm = () => {
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium text-lg shadow-lg hover:shadow-xl"
+            disabled={loading}
+            className={`w-full flex items-center justify-center gap-2 ${
+              loading ? 'bg-green-400' : 'bg-green-600 hover:bg-green-700'
+            } text-white py-3 rounded-lg transition-colors font-medium text-lg shadow-lg hover:shadow-xl`}
           >
-            Sign In
+            {loading ? (
+              <>
+                <Loader className="animate-spin w-5 h-5" />
+                Signing In...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">Demo credentials:</p>
-          <p className="text-xs text-gray-400">Username: admin | Password: justright2025</p>
-        </div>
       </div>
     </div>
   );

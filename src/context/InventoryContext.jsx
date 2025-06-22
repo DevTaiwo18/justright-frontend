@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { sampleProducts, sampleStockIn, sampleStockOut } from '../data/sampleData';
+import axios from 'axios';
+import API_BASE_URL from '../config/api'; 
 
 export const InventoryContext = createContext();
 
@@ -13,11 +14,10 @@ export const useInventory = () => {
 };
 
 export const InventoryProvider = ({ children }) => {
-  const [products, setProducts] = useState(sampleProducts);
-  const [stockIn, setStockIn] = useState(sampleStockIn);
-  const [stockOut, setStockOut] = useState(sampleStockOut);
+  const [products, setProducts] = useState([]);
+  const [stockIn, setStockIn] = useState([]);
+  const [stockOut, setStockOut] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
-
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('auth') === 'true';
   });
@@ -26,30 +26,71 @@ export const InventoryProvider = ({ children }) => {
     localStorage.setItem('auth', isAuthenticated);
   }, [isAuthenticated]);
 
-  const addProduct = (product) => {
-    setProducts(prev => [...prev, { ...product, id: Date.now() }]);
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    };
   };
 
-  const addStockIn = (stock) => {
-    setStockIn(prev => [...prev, { ...stock, id: Date.now() }]);
-    setProducts(prev => prev.map(p =>
-      p.id === stock.productId
-        ? { ...p, quantity: p.quantity + stock.quantity }
-        : p
-    ));
+  // Fetch data from backend on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsRes, stockInRes, stockOutRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/products`, getAuthHeaders()),
+          axios.get(`${API_BASE_URL}/stock-in`, getAuthHeaders()),
+          axios.get(`${API_BASE_URL}/stock-out`, getAuthHeaders()),
+        ]);
+
+        setProducts(productsRes.data.data || []);
+        setStockIn(stockInRes.data.data || []);
+        setStockOut(stockOutRes.data.data || []);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+      }
+    };
+
+    if (isAuthenticated) fetchData();
+  }, [isAuthenticated]);
+
+  const addProduct = async (product) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/products`, product, getAuthHeaders());
+      setProducts((prev) => [...prev, res.data.data]);
+    } catch (err) {
+      console.error('Error adding product:', err);
+    }
   };
 
-  const addStockOut = (stock) => {
-    setStockOut(prev => [...prev, { ...stock, id: Date.now() }]);
-    setProducts(prev => prev.map(p =>
-      p.id === stock.productId
-        ? { ...p, quantity: Math.max(0, p.quantity - stock.quantity) }
-        : p
-    ));
+  const addStockIn = async (stock) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/stock-in`, stock, getAuthHeaders());
+      setStockIn((prev) => [...prev, res.data.data]);
+
+      const updated = await axios.get(`${API_BASE_URL}/products`, getAuthHeaders());
+      setProducts(updated.data.data);
+    } catch (err) {
+      console.error('Error adding stock-in:', err);
+    }
+  };
+
+  const addStockOut = async (stock) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/stock-out`, stock, getAuthHeaders());
+      setStockOut((prev) => [...prev, res.data.data]);
+
+      const updated = await axios.get(`${API_BASE_URL}/products`, getAuthHeaders());
+      setProducts(updated.data.data);
+    } catch (err) {
+      console.error('Error adding stock-out:', err);
+    }
   };
 
   const getLowStockItems = () => {
-    return products.filter(p => p.quantity <= p.threshold);
+    return products.filter((p) => p.currentStock <= (p.lowStockThreshold || 5));
   };
 
   const value = {
@@ -63,7 +104,7 @@ export const InventoryProvider = ({ children }) => {
     addProduct,
     addStockIn,
     addStockOut,
-    getLowStockItems
+    getLowStockItems,
   };
 
   return (
@@ -72,5 +113,3 @@ export const InventoryProvider = ({ children }) => {
     </InventoryContext.Provider>
   );
 };
-
- 
