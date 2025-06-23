@@ -148,8 +148,8 @@ const Products = () => {
 
         {/* Modal */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-            <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-white/20">
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 px-4 min-h-screen w-full">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
@@ -202,7 +202,6 @@ const Products = () => {
                     </div>
                   ))}
                 </div>
-
 
                 {/* Expiry Date */}
                 <div className="space-y-2">
