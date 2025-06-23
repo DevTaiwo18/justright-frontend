@@ -37,7 +37,7 @@ const Products = () => {
     try {
       await addProduct({
         ...newProduct,
-        currentStock: newProduct.quantity,
+        currentStock: newProduct.quantity === '' ? 0 : Number(newProduct.quantity),
         lowStockThreshold: newProduct.threshold,
       });
       toast.success('Product added successfully!');
@@ -45,9 +45,9 @@ const Products = () => {
         name: '',
         category: '',
         packSize: '',
-        quantity: 0,
-        buyingPrice: 0,
-        sellingPrice: 0,
+        quantity: '',
+        buyingPrice: '',
+        sellingPrice: '',
         supplier: '',
         expiryDate: '',
         threshold: 10
@@ -174,7 +174,7 @@ const Products = () => {
                     { label: 'Product Name', name: 'name', type: 'text', required: true },
                     { label: 'Category', name: 'category', type: 'text', required: true },
                     { label: 'Pack Size', name: 'packSize', type: 'text', required: true },
-                    { label: 'Initial Quantity', name: 'quantity', type: 'number', required: true },
+                    { label: 'Initial Quantity (Optional)', name: 'quantity', type: 'number', required: false },
                     { label: 'Buying Price (₦)', name: 'buyingPrice', type: 'number', required: true },
                     { label: 'Selling Price (₦)', name: 'sellingPrice', type: 'number', required: true },
                     { label: 'Supplier (Optional)', name: 'supplier', type: 'text', required: false },
@@ -192,7 +192,7 @@ const Products = () => {
                           setNewProduct({
                             ...newProduct,
                             [field.name]: field.type === 'number'
-                              ? e.target.value === '' ? '' : parseFloat(e.target.value)
+                              ? e.target.value
                               : e.target.value
                           })
                         }

@@ -17,7 +17,16 @@ const Dashboard = () => {
   const lowStockItems = getLowStockItems?.() || [];
 
   const recentStockIn = [...stockIn]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateB - dateA; 
+      }
+      
+      return (b._id || '').localeCompare(a._id || '');
+    })
     .slice(0, 3);
 
   const stats = [
@@ -173,15 +182,21 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {recentStockIn.map((stock, index) => {
-                    const product = products.find(
-                      (p) => p._id === stock.productId || p.id === stock.productId
-                    );
+                    // Since stock.product is already a full product object, use it directly
+                    const product = typeof stock.product === 'object' && stock.product 
+                      ? stock.product 
+                      : products.find(
+                          (p) => String(p._id) === String(stock.product) || 
+                                 String(p._id) === String(stock.productId) || 
+                                 String(p.id) === String(stock.product) || 
+                                 String(p.id) === String(stock.productId)
+                        );
 
                     return (
                       <div key={stock._id || stock.id || index} className="group flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl hover:shadow-md transition-all duration-200">
                         <div className="flex-1">
                           <p className="font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors">
-                            {product?.name || 'Unknown Product'}
+                            {product?.name || stock.productName || 'Unknown Product'}
                           </p>
                           <p className="text-sm text-slate-600 mt-1">
                             {new Date(stock.date).toLocaleDateString()}

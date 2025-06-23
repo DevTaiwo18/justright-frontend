@@ -24,7 +24,6 @@ const StockIn = () => {
       try {
         setLoading(true);
 
-        // ✅ Correct backend-compatible payload
         await addStockIn({
           product: newStock.productId,
           quantity: parseInt(newStock.quantity),
@@ -163,7 +162,7 @@ const StockIn = () => {
                 {/* Supplier */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
-                    Supplier <span className="text-red-500">*</span>
+                    Supplier (Optional)
                   </label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
@@ -173,7 +172,7 @@ const StockIn = () => {
                       onChange={(e) => setNewStock({ ...newStock, supplier: e.target.value })}
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
                       placeholder="Enter supplier name"
-                      required = {false}
+                      required={false}
                     />
                   </div>
                 </div>
