@@ -15,9 +15,9 @@ const Products = () => {
     name: '',
     category: '',
     packSize: '',
-    quantity: 0,
-    buyingPrice: 0,
-    sellingPrice: 0,
+    quantity: '',
+    buyingPrice: '',
+    sellingPrice: '',
     supplier: '',
     expiryDate: '',
     threshold: 10
@@ -83,7 +83,7 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/20">
           <div>
@@ -128,7 +128,7 @@ const Products = () => {
               </select>
             </div>
           </div>
-          
+
           {/* Results Summary */}
           <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
             <span>Showing {filteredProducts.length} of {products.length} products</span>
@@ -177,7 +177,7 @@ const Products = () => {
                     { label: 'Initial Quantity', name: 'quantity', type: 'number', required: true },
                     { label: 'Buying Price (₦)', name: 'buyingPrice', type: 'number', required: true },
                     { label: 'Selling Price (₦)', name: 'sellingPrice', type: 'number', required: true },
-                    { label: 'Supplier', name: 'supplier', type: 'text', required: true },
+                    { label: 'Supplier (Optional)', name: 'supplier', type: 'text', required: false },
                     { label: 'Low Stock Threshold', name: 'threshold', type: 'number', required: true }
                   ].map((field) => (
                     <div key={field.name} className="space-y-2">
@@ -191,7 +191,9 @@ const Products = () => {
                         onChange={(e) =>
                           setNewProduct({
                             ...newProduct,
-                            [field.name]: field.type === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
+                            [field.name]: field.type === 'number'
+                              ? e.target.value === '' ? '' : parseFloat(e.target.value)
+                              : e.target.value
                           })
                         }
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
@@ -200,6 +202,7 @@ const Products = () => {
                     </div>
                   ))}
                 </div>
+
 
                 {/* Expiry Date */}
                 <div className="space-y-2">
@@ -335,7 +338,7 @@ const Products = () => {
                       {getStatusText(product.currentStock ?? 0, product.lowStockThreshold)}
                     </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-slate-500">Stock:</span>
@@ -354,7 +357,7 @@ const Products = () => {
                       <span className="font-semibold text-slate-900 ml-2">₦{product.sellingPrice?.toLocaleString() || '0'}</span>
                     </div>
                   </div>
-                  
+
                   <div className="mt-3 pt-3 border-t border-slate-200">
                     <span className="text-slate-500 text-sm">Supplier:</span>
                     <span className="font-medium text-slate-900 ml-2">{product.supplier}</span>
