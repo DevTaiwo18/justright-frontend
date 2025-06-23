@@ -11,7 +11,7 @@ const StockIn = () => {
   const [loading, setLoading] = useState(false);
   const [newStock, setNewStock] = useState({
     productId: '',
-    quantity: 0,
+    quantity: '',
     date: new Date().toISOString().split('T')[0],
     supplier: ''
   });
@@ -173,7 +173,7 @@ const StockIn = () => {
                       onChange={(e) => setNewStock({ ...newStock, supplier: e.target.value })}
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
                       placeholder="Enter supplier name"
-                      required
+                      required = {false}
                     />
                   </div>
                 </div>
