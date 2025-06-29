@@ -1,32 +1,32 @@
-/* eslint-disable no-unused-vars */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, PackagePlus, TrendingUp, AlertTriangle, BarChart3, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { Package, PackagePlus, TrendingUp, AlertTriangle, BarChart3, Calendar, ArrowUp, Loader2 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { products, getLowStockItems, stockIn, stockOut } = useInventory();
+  const { products, getLowStockItems, stockIn, getDashboardStats } = useInventory();
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  // Use frontend calculations for now (more reliable)
   const totalProducts = products?.length || 0;
-
   const totalValue = products.reduce((sum, p) => {
-    const quantity = Number(p.currentStock || p.quantity) || 0;
-    const price = Number(p.sellingPrice) || 0;
+    const quantity = Number(p.currentStock) || 0;
+    const price = Number(p.buyingPrice) || 0;
     return sum + quantity * price;
   }, 0);
-
+  
   const lowStockItems = getLowStockItems?.() || [];
+  const lowStockCount = lowStockItems.length;
+
+  // Calculate today's sales from stockOut data (if available)
+  const today = new Date().toDateString();
+  const todaySales = stockIn.filter(stock => {
+    const stockDate = new Date(stock.date).toDateString();
+    return stockDate === today;
+  }).length;
 
   const recentStockIn = [...stockIn]
-    .sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      
-      if (dateA.getTime() !== dateB.getTime()) {
-        return dateB - dateA; 
-      }
-      
-      return (b._id || '').localeCompare(a._id || '');
-    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 3);
 
   const stats = [
@@ -39,7 +39,7 @@ const Dashboard = () => {
       iconBg: 'bg-blue-500'
     },
     { 
-      label: 'Inventory Value', 
+      label: 'Stock Value', 
       value: `₦${totalValue.toLocaleString()}`, 
       icon: TrendingUp, 
       color: 'from-emerald-500 to-emerald-600',
@@ -48,15 +48,15 @@ const Dashboard = () => {
     },
     { 
       label: 'Low Stock Items', 
-      value: lowStockItems.length, 
+      value: lowStockCount, 
       icon: AlertTriangle, 
       color: 'from-red-500 to-red-600',
       bgColor: 'from-red-50 to-red-100',
       iconBg: 'bg-red-500'
     },
     { 
-      label: 'Categories', 
-      value: [...new Set(products.map((p) => p.category))].length, 
+      label: 'Stock Added Today', 
+      value: todaySales, 
       icon: BarChart3, 
       color: 'from-cyan-500 to-cyan-600',
       bgColor: 'from-cyan-50 to-cyan-100',
@@ -92,9 +92,9 @@ const Dashboard = () => {
                 <div className="relative flex items-start justify-between">
                   <div className="flex-1">
                     <p className="text-slate-600 text-sm font-semibold uppercase tracking-wide">{stat.label}</p>
-                    <p className="text-3xl font-bold text-slate-800 mt-2 group-hover:text-slate-900 transition-colors">
+                    <div className="text-3xl font-bold text-slate-800 mt-2 group-hover:text-slate-900 transition-colors min-h-[2.5rem] flex items-center">
                       {stat.value}
-                    </p>
+                    </div>
                   </div>
                   <div className={`w-14 h-14 ${stat.iconBg} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                     <Icon className="w-7 h-7 text-white" />
@@ -142,7 +142,7 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
-                          <p className="text-2xl font-bold text-red-600">{item.currentStock || item.quantity}</p>
+                          <p className="text-2xl font-bold text-red-600">{item.currentStock}</p>
                           <p className="text-xs text-slate-500 uppercase tracking-wide">units left</p>
                         </div>
                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
@@ -182,21 +182,15 @@ const Dashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {recentStockIn.map((stock, index) => {
-                    // Since stock.product is already a full product object, use it directly
                     const product = typeof stock.product === 'object' && stock.product 
                       ? stock.product 
-                      : products.find(
-                          (p) => String(p._id) === String(stock.product) || 
-                                 String(p._id) === String(stock.productId) || 
-                                 String(p.id) === String(stock.product) || 
-                                 String(p.id) === String(stock.productId)
-                        );
+                      : products.find(p => String(p._id) === String(stock.product));
 
                     return (
                       <div key={stock._id || stock.id || index} className="group flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl hover:shadow-md transition-all duration-200">
                         <div className="flex-1">
                           <p className="font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors">
-                            {product?.name || stock.productName || 'Unknown Product'}
+                            {product?.name || 'Unknown Product'}
                           </p>
                           <p className="text-sm text-slate-600 mt-1">
                             {new Date(stock.date).toLocaleDateString()}

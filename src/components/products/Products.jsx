@@ -1,26 +1,31 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Plus, Search, Filter, Loader, Package, X, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Filter, Loader, Package, X, Edit2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const Products = () => {
-  const { products, addProduct } = useInventory();
+  const { products, addProduct, updateProduct } = useInventory();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [newProduct, setNewProduct] = useState({
     name: '',
     category: '',
-    packSize: '',
-    quantity: '',
+    currentStock: '',
     buyingPrice: '',
     sellingPrice: '',
-    supplier: '',
-    expiryDate: '',
-    threshold: 10
+    lowStockThreshold: 5
+  });
+  const [editProduct, setEditProduct] = useState({
+    name: '',
+    category: '',
+    buyingPrice: '',
+    sellingPrice: '',
+    lowStockThreshold: 5
   });
 
   const categories = [...new Set(products.map(p => p.category))];
@@ -34,27 +39,79 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Ensure all required fields are filled
+    if (!newProduct.name.trim() || !newProduct.category.trim() || !newProduct.buyingPrice || !newProduct.sellingPrice) {
+      toast.error('Please fill in all required fields');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await addProduct({
-        ...newProduct,
-        currentStock: newProduct.quantity === '' ? 0 : Number(newProduct.quantity),
-        lowStockThreshold: newProduct.threshold,
-      });
+      const productData = {
+        name: newProduct.name.trim(),
+        category: newProduct.category.trim(),
+        currentStock: newProduct.currentStock === '' ? 0 : Number(newProduct.currentStock),
+        buyingPrice: Number(newProduct.buyingPrice),
+        sellingPrice: Number(newProduct.sellingPrice),
+        lowStockThreshold: Number(newProduct.lowStockThreshold) || 5
+      };
+
+      console.log('Product data being sent:', productData); // Debug log
+      
+      await addProduct(productData);
       toast.success('Product added successfully!');
       setNewProduct({
         name: '',
         category: '',
-        packSize: '',
-        quantity: '',
+        currentStock: '',
         buyingPrice: '',
         sellingPrice: '',
-        supplier: '',
-        expiryDate: '',
-        threshold: 10
+        lowStockThreshold: 5
       });
       setShowAddForm(false);
     } catch (err) {
-      toast.error('Failed to add product. Try again.');
+      console.error('Frontend error:', err);
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else if (err.response?.data?.errors) {
+        const errorMessages = err.response.data.errors.map(error => error.msg || error.message).join(', ');
+        toast.error(`Validation errors: ${errorMessages}`);
+      } else {
+        toast.error('Failed to add product. Try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (product) => {
+    setEditingProduct(product);
+    setEditProduct({
+      name: product.name,
+      category: product.category,
+      buyingPrice: product.buyingPrice,
+      sellingPrice: product.sellingPrice,
+      lowStockThreshold: product.lowStockThreshold
+    });
+    setShowEditForm(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await updateProduct(editingProduct._id, {
+        ...editProduct,
+        buyingPrice: Number(editProduct.buyingPrice),
+        sellingPrice: Number(editProduct.sellingPrice),
+        lowStockThreshold: Number(editProduct.lowStockThreshold)
+      });
+      toast.success('Product updated successfully!');
+      setShowEditForm(false);
+      setEditingProduct(null);
+    } catch (err) {
+      toast.error('Failed to update product. Try again.');
     } finally {
       setLoading(false);
     }
@@ -149,7 +206,7 @@ const Products = () => {
         {/* Modal */}
         {showAddForm && (
           <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 px-4 min-h-screen w-full">
-            <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
@@ -157,7 +214,7 @@ const Products = () => {
                   </div>
                   <div>
                     <h3 className="text-2xl font-bold text-slate-800">Add New Product</h3>
-                    <p className="text-slate-600">Fill in the product details below</p>
+                    <p className="text-slate-600">Fill in the essential product details</p>
                   </div>
                 </div>
                 <button
@@ -168,50 +225,96 @@ const Products = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[
-                    { label: 'Product Name', name: 'name', type: 'text', required: true },
-                    { label: 'Category', name: 'category', type: 'text', required: true },
-                    { label: 'Pack Size', name: 'packSize', type: 'text', required: true },
-                    { label: 'Initial Quantity (Optional)', name: 'quantity', type: 'number', required: false },
-                    { label: 'Buying Price (₦)', name: 'buyingPrice', type: 'number', required: true },
-                    { label: 'Selling Price (₦)', name: 'sellingPrice', type: 'number', required: true },
-                    { label: 'Supplier (Optional)', name: 'supplier', type: 'text', required: false },
-                    { label: 'Low Stock Threshold', name: 'threshold', type: 'number', required: true }
-                  ].map((field) => (
-                    <div key={field.name} className="space-y-2">
-                      <label className="block text-sm font-semibold text-slate-700">
-                        {field.label} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                      <input
-                        required={field.required}
-                        type={field.type}
-                        value={newProduct[field.name]}
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            [field.name]: field.type === 'number'
-                              ? e.target.value
-                              : e.target.value
-                          })
-                        }
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                      />
-                    </div>
-                  ))}
-                </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="Enter product name"
+                    />
+                  </div>
 
-                {/* Expiry Date */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700">Expiry Date (Optional)</label>
-                  <input
-                    type="date"
-                    value={newProduct.expiryDate}
-                    onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
-                  />
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={newProduct.category}
+                      onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="Enter category"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Initial Stock (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newProduct.currentStock}
+                      onChange={(e) => setNewProduct({ ...newProduct, currentStock: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="0"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Low Stock Threshold <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={newProduct.lowStockThreshold}
+                      onChange={(e) => setNewProduct({ ...newProduct, lowStockThreshold: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="5"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Buying Price (₦) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newProduct.buyingPrice}
+                      onChange={(e) => setNewProduct({ ...newProduct, buyingPrice: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Selling Price (₦) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={newProduct.sellingPrice}
+                      onChange={(e) => setNewProduct({ ...newProduct, sellingPrice: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -219,6 +322,7 @@ const Products = () => {
                   <button
                     type="submit"
                     disabled={loading}
+                    onClick={handleSubmit}
                     className="flex-1 flex justify-center items-center bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -241,7 +345,160 @@ const Products = () => {
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {showEditForm && editingProduct && (
+          <div className="fixed top-0 left-0 right-0 bottom-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 px-4 min-h-screen w-full">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                    <Edit2 className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">Edit Product</h3>
+                    <p className="text-slate-600">Update product details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEditForm(false);
+                    setEditingProduct(null);
+                  }}
+                  className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Product Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={editProduct.name}
+                      onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="Enter product name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      value={editProduct.category}
+                      onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="Enter category"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Current Stock
+                    </label>
+                    <input
+                      type="number"
+                      value={editingProduct.currentStock}
+                      disabled
+                      className="w-full px-4 py-3 bg-slate-200 border border-slate-200 rounded-xl text-slate-600 font-medium cursor-not-allowed"
+                      placeholder="Use Stock In/Out to change"
+                    />
+                    <p className="text-xs text-slate-500">Stock levels can only be changed through Stock In/Out transactions</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Low Stock Threshold <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={editProduct.lowStockThreshold}
+                      onChange={(e) => setEditProduct({ ...editProduct, lowStockThreshold: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="5"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Buying Price (₦) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editProduct.buyingPrice}
+                      onChange={(e) => setEditProduct({ ...editProduct, buyingPrice: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700">
+                      Selling Price (₦) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editProduct.sellingPrice}
+                      onChange={(e) => setEditProduct({ ...editProduct, sellingPrice: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    onClick={handleUpdate}
+                    className="flex-1 flex justify-center items-center bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader className="animate-spin w-5 h-5 mr-2" />
+                        Updating Product...
+                      </>
+                    ) : (
+                      <>
+                        <Edit2 className="w-5 h-5 mr-2" />
+                        Update Product
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEditForm(false);
+                      setEditingProduct(null);
+                    }}
+                    className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-4 rounded-xl transition-all duration-200 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -253,7 +510,7 @@ const Products = () => {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-slate-100 to-blue-100">
                 <tr>
-                  {['Product', 'Category', 'Stock', 'Buying Price', 'Selling Price', 'Supplier', 'Status'].map((col) => (
+                  {['Product', 'Category', 'Stock', 'Buying Price', 'Selling Price', 'Status', 'Actions'].map((col) => (
                     <th key={col} className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                       {col}
                     </th>
@@ -275,7 +532,7 @@ const Products = () => {
                   </tr>
                 ) : (
                   filteredProducts.map((product) => (
-                    <tr key={product._id || product.id || `product-${product.name}-${Math.random()}`} className="hover:bg-slate-50 transition-colors group">
+                    <tr key={product._id || product.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center">
@@ -283,7 +540,6 @@ const Products = () => {
                           </div>
                           <div>
                             <div className="text-sm font-semibold text-slate-900">{product.name}</div>
-                            <div className="text-xs text-slate-500">Pack: {product.packSize}</div>
                           </div>
                         </div>
                       </td>
@@ -297,11 +553,19 @@ const Products = () => {
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-900">₦{product.buyingPrice?.toLocaleString() || '0'}</td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-900">₦{product.sellingPrice?.toLocaleString() || '0'}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{product.supplier}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 text-xs font-bold bg-gradient-to-r ${getStatusColor(product.currentStock ?? 0, product.lowStockThreshold)} rounded-full`}>
                           {getStatusText(product.currentStock ?? 0, product.lowStockThreshold)}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all duration-200"
+                        >
+                          <Edit2 className="w-4 h-4 mr-1" />
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))
@@ -322,7 +586,7 @@ const Products = () => {
               </div>
             ) : (
               filteredProducts.map((product) => (
-                <div key={product._id || product.id || `mobile-product-${product.name}-${Math.random()}`} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
+                <div key={product._id || product.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center">
@@ -344,8 +608,8 @@ const Products = () => {
                       <span className="font-semibold text-slate-900 ml-2">{product.currentStock ?? 0}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500">Pack Size:</span>
-                      <span className="font-semibold text-slate-900 ml-2">{product.packSize}</span>
+                      <span className="text-slate-500">Threshold:</span>
+                      <span className="font-semibold text-slate-900 ml-2">{product.lowStockThreshold}</span>
                     </div>
                     <div>
                       <span className="text-slate-500">Buy Price:</span>
@@ -357,9 +621,14 @@ const Products = () => {
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-slate-200">
-                    <span className="text-slate-500 text-sm">Supplier:</span>
-                    <span className="font-medium text-slate-900 ml-2">{product.supplier}</span>
+                  <div className="mt-3 pt-3 border-t border-slate-200 flex justify-end">
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all duration-200"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Edit
+                    </button>
                   </div>
                 </div>
               ))

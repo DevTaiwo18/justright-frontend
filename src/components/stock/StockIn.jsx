@@ -1,7 +1,6 @@
-/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { PackagePlus, Loader, Package, X, Calendar, User, ArrowUp } from 'lucide-react';
+import { PackagePlus, Loader, Package, X, Calendar, ArrowUp } from 'lucide-react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -12,8 +11,7 @@ const StockIn = () => {
   const [newStock, setNewStock] = useState({
     productId: '',
     quantity: '',
-    date: new Date().toISOString().split('T')[0],
-    supplier: ''
+    date: new Date().toISOString().split('T')[0]
   });
 
   const handleSubmit = async (e) => {
@@ -27,16 +25,14 @@ const StockIn = () => {
         await addStockIn({
           product: newStock.productId,
           quantity: parseInt(newStock.quantity),
-          date: newStock.date,
-          supplier: newStock.supplier
+          date: newStock.date
         });
 
         toast.success(`Stock added for ${product.name}`);
         setNewStock({
           productId: '',
-          quantity: 0,
-          date: new Date().toISOString().split('T')[0],
-          supplier: ''
+          quantity: '',
+          date: new Date().toISOString().split('T')[0]
         });
         setShowAddForm(false);
       } catch (error) {
@@ -100,7 +96,7 @@ const StockIn = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 {/* Product Selection */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -159,29 +155,12 @@ const StockIn = () => {
                   </div>
                 </div>
 
-                {/* Supplier */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Supplier (Optional)
-                  </label>
-                  <div className="relative group">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
-                    <input
-                      type="text"
-                      value={newStock.supplier}
-                      onChange={(e) => setNewStock({ ...newStock, supplier: e.target.value })}
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-slate-400 text-slate-700 font-medium hover:bg-slate-100 focus:bg-white"
-                      placeholder="Enter supplier name"
-                      required={false}
-                    />
-                  </div>
-                </div>
-
                 {/* Buttons */}
                 <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6">
                   <button
                     type="submit"
                     disabled={loading}
+                    onClick={handleSubmit}
                     className="flex-1 flex justify-center items-center bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -204,7 +183,7 @@ const StockIn = () => {
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
@@ -229,7 +208,7 @@ const StockIn = () => {
               <table className="w-full">
                 <thead className="bg-slate-50">
                   <tr>
-                    {['Product', 'Quantity', 'Date', 'Supplier'].map((heading) => (
+                    {['Product', 'Quantity', 'Date'].map((heading) => (
                       <th key={heading} className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
                         {heading}
                       </th>
@@ -246,6 +225,7 @@ const StockIn = () => {
                           </div>
                           <div>
                             <div className="font-semibold text-slate-900">{stock.product?.name || 'N/A'}</div>
+                            <div className="text-sm text-slate-600">{stock.product?.category || ''}</div>
                           </div>
                         </div>
                       </td>
@@ -258,7 +238,6 @@ const StockIn = () => {
                       <td className="px-6 py-4 text-sm font-medium text-slate-700">
                         {new Date(stock.date).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-700">{stock.supplier}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -286,7 +265,7 @@ const StockIn = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-slate-900">{stock.product?.name || 'N/A'}</h3>
-                        <p className="text-sm text-slate-600">{stock.supplier}</p>
+                        <p className="text-sm text-slate-600">{stock.product?.category || ''}</p>
                       </div>
                     </div>
                     <span className="inline-flex items-center px-3 py-1 text-sm font-bold bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 rounded-full">

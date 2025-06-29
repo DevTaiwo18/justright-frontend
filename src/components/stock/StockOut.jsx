@@ -27,8 +27,6 @@ const StockOut = () => {
       setLoading(true);
       await addStockOut({
         product: product._id,
-        productId: product._id,
-        productName: product.name,
         quantity: quantityToSell,
         date: newStock.date,
       });
@@ -100,7 +98,7 @@ const StockOut = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 {/* Product Selection */}
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
@@ -189,6 +187,7 @@ const StockOut = () => {
                   <button
                     type="submit"
                     disabled={loading}
+                    onClick={handleSubmit}
                     className="flex-1 flex justify-center items-center bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
@@ -211,7 +210,7 @@ const StockOut = () => {
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
@@ -247,11 +246,11 @@ const StockOut = () => {
                   {stockOut.slice().reverse().map((stock, index) => {
                     const product = typeof stock.product === 'object'
                       ? stock.product
-                      : products.find((p) => p._id === stock.productId || p._id === stock.product);
+                      : products.find((p) => p._id === stock.product);
                     const revenue = product ? stock.quantity * (product.sellingPrice || 0) : 0;
                     
                     return (
-                      <tr key={stock._id || `${stock.productId}-${index}`} className="hover:bg-blue-50 transition-colors group">
+                      <tr key={stock._id || `${stock.product}-${index}`} className="hover:bg-blue-50 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center">
@@ -259,8 +258,9 @@ const StockOut = () => {
                             </div>
                             <div>
                               <div className="font-semibold text-slate-900">
-                                {product?.name || stock.productName || 'Unknown Product'}
+                                {product?.name || 'Unknown Product'}
                               </div>
+                              <div className="text-sm text-slate-600">{product?.category || ''}</div>
                             </div>
                           </div>
                         </td>
@@ -298,11 +298,11 @@ const StockOut = () => {
               stockOut.slice().reverse().map((stock, index) => {
                 const product = typeof stock.product === 'object'
                   ? stock.product
-                  : products.find((p) => p._id === stock.productId || p._id === stock.product);
+                  : products.find((p) => p._id === stock.product);
                 const revenue = product ? stock.quantity * (product.sellingPrice || 0) : 0;
                 
                 return (
-                  <div key={stock._id || `mobile-${stock.productId}-${index}`} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
+                  <div key={stock._id || `mobile-${stock.product}-${index}`} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center">
@@ -310,8 +310,9 @@ const StockOut = () => {
                         </div>
                         <div>
                           <h3 className="font-semibold text-slate-900">
-                            {product?.name || stock.productName || 'Unknown Product'}
+                            {product?.name || 'Unknown Product'}
                           </h3>
+                          <p className="text-sm text-slate-600">{product?.category || ''}</p>
                           <p className="text-sm text-slate-600">
                             {new Date(stock.date).toLocaleDateString()}
                           </p>
